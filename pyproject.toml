@@ -1,0 +1,21 @@
+[tool.poetry]
+name = "messengers-summarizer"
+version = "0.1.0"
+description = "Application that reads specified chats from Telegram and provides summary on topics discussed in unread messages."
+authors = ["Yevhenii Kosharnyi <y.kosharnyi@elsevier.com>"]
+readme = "README.md"
+package-mode = false
+
+[tool.poetry.dependencies]
+python = "^3.12"
+transformers = "^4.43.2"
+ollama = "^0.3.0"
+telethon = "^1.36.0"
+ruff = "^0.5.5"
+
+[tool.poetry.group.dev.dependencies]
+ruff = "^0.5.4"
+
+[build-system]
+requires = ["poetry-core"]
+build-backend = "poetry.core.masonry.api"
