@@ -1,10 +1,12 @@
 import datetime
 import os
-from typing import List, Union
+from typing import List, Optional, Union
 
 from telethon import TelegramClient
+from telethon.tl.types import Message
 
 from src.messengers.base_messenger import BaseMessenger
+from src.utils import extract_props_from_obj_to_dict, print_message
 
 TG_APP_ID = os.environ["TG_APP_ID"]
 TG_API_HASH = os.environ["TG_API_HASH"]
@@ -14,6 +16,7 @@ class TelegramMessenger(BaseMessenger):
     def __init__(self):
         self.client = TelegramClient("anon", TG_APP_ID, TG_API_HASH)
 
+    @staticmethod
     def run_with_client(func: callable):
         def wrapper(self, *args, **kwargs):
             with self.client as client:
@@ -22,24 +25,60 @@ class TelegramMessenger(BaseMessenger):
 
         return wrapper
 
+    # @staticmethod
+    # def print_dialog_id(channel_name: str, dialog):
+    #     channel_name = channel_name.lower()
+    #     dialog_name = dialog.name.lower()
+    #     if channel_name in dialog_name:
+    #         print(dialog.name, "has ID", dialog.id)
+
     @run_with_client
-    async def print_channel_ids(self, channel_name: Union[str, List[str]]):
+    async def print_dialog_ids(self, channel_name: Union[str, List[str]]):
+        print("Printing dialog IDs ", channel_name)
+
+        def print_dialog_id(channel_name: str, dialog):
+            channel_name = channel_name.lower()
+            dialog_name = dialog.name.lower()
+            if channel_name in dialog_name:
+                print(dialog.name, "has ID", dialog.id)
+
         async for dialog in self.client.iter_dialogs():
             match channel_name:
                 case str():
-                    if dialog.name == channel_name:
-                        print(dialog.name, "has ID", dialog.id)
+                    print_dialog_id(channel_name, dialog)
                 case list():
-                    if dialog.name in channel_name:
-                        print(dialog.name, "has ID", dialog.id)
+                    for name in channel_name:
+                        print_dialog_id(channel_name=name, dialog=dialog)
+
                 case _:
-                    raise ValueError(
-                        "Channel name should be a string or a list of strings"
-                    )
+                    raise ValueError("Channel name should be a string or a list of strings")
 
-    def read_messages(self):
-        now = datetime.datetime.now()
-        offset_date = now - datetime.timedelta(hours=21)
-        print(f"Now: {now}, offset_date: {offset_date}")
+    @run_with_client
+    async def get_messages(
+        self,
+        channel_id: int,
+        start_date: Optional[datetime.datetime] = None,
+        extract_props: Optional[List[str]] = None,
+    ) -> List[Message]:
+        messages = []
+        async for message in self.client.iter_messages(channel_id, offset_date=start_date, reverse=True):
+            if extract_props:
+                messages.append(extract_props_from_obj_to_dict(message, extract_props))
+            else:
+                messages.append(message)
 
-        self.print_channel_ids(["Українці в Австрії", "Австрия Бизнес"])
+        return messages
+
+    def read_messages(self, start_date: Optional[datetime.datetime] = None):
+        if not start_date:
+            start_date = datetime.datetime.now() - datetime.timedelta(hours=10)
+        print(f"Reading with offset_date: {start_date}")
+
+        # self.print_dialog_ids(["Арина", "Українці в Австрії", "Австрия Бизнес", "Австрія IT"])
+        messages = self.get_messages(
+            -1001718919267, start_date, extract_props=["id", "chat_id", "sender_id", "date", "message"]
+        )
+        # messages = self.get_messages(-1001718919267, start_date)
+
+        for message in messages:
+            print_message(message)
