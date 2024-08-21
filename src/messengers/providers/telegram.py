@@ -21,7 +21,6 @@ class TelegramMessenger(BaseMessenger):
     def run_with_client(func: callable):
         def wrapper(self, *args, **kwargs):
             with self.client as client:
-                print("Running with client")
                 return client.loop.run_until_complete(func(self, *args, **kwargs))
 
         return wrapper
@@ -68,13 +67,14 @@ class TelegramMessenger(BaseMessenger):
 
     def read_messages(self, start_date: Optional[datetime.datetime] = None, skip_empty_messages: bool = True):
         if not start_date:
-            start_date = datetime.datetime.now() - datetime.timedelta(hours=10)
+            start_date = datetime.datetime.now() - datetime.timedelta(hours=24)
         print(f"Reading with offset_date: {start_date}")
 
         # self.print_dialog_ids(["Арина", "Українці в Австрії", "Австрия Бизнес", "Австрія IT"])
 
         messages = {}
         for channel_name, channel_id in CHAT_ID_MAPPING.items():
+            print("Reading messages from ", channel_name)
             chat_messages = self.get_messages(
                 channel_id,
                 start_date,
